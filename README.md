@@ -1,6 +1,6 @@
 # Chasi-Bod ( chaass-board )
 
-## Build, Share and Run Multi-Tenant Business Systems on Shared Kubernetes Cluster with VCluster Isolation, Simplified
+## Build, Share and Run Multi-Tenant Business Systems on Shared Kubernetes Cluster with Virtual Cluster Isolation, Simplified
 
 [![License](https://img.shields.io/github/license/turtacn/chasi-bod)](https://github.com/turtacn/chasi-bod/blob/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/turtacn/chasi-bod)](https://goreportcard.com/report/github.com/turtacn/chasi-bod)
