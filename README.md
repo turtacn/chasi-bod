@@ -51,7 +51,7 @@ At a high level, it consists of:
 3.  **Virtual Cluster / Application Layer:** Isolated `vcluster` instances and the business applications running within them.
 4.  **Chasi-Bod Management Plane:** The control logic orchestrating build, deploy, and manage operations across all layers.
 
-For a detailed breakdown, please refer to the [architecture documentation](docs/architecture.md).
+For a detailed breakdown, please refer to the [architecture documentation / 架构设计](docs/architecture.md).
 
 ## 🧠 How It Works
 
