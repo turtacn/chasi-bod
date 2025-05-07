@@ -257,5 +257,5 @@ DFX 能力贯穿 `chasi-bod` 设计的各个层面。
 
 ## 12. 参考
 
-[1] sealer - Build, Share and Run Both Your Kubernetes Cluster and Distributed Applications (Project under CNCF) [https://github.com/sealerio/sealer](https://github.com/sealerio/sealer)
-[2] vCluster - Create fully functional virtual Kubernetes clusters [https://github.com/loft-sh/vcluster](https://github.com/loft-sh/vcluster)
+- [1] sealer - Build, Share and Run Both Your Kubernetes Cluster and Distributed Applications (Project under CNCF) [https://github.com/sealerio/sealer](https://github.com/sealerio/sealer)
+- [2] vCluster - Create fully functional virtual Kubernetes clusters [https://github.com/loft-sh/vcluster](https://github.com/loft-sh/vcluster)
