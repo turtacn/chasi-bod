@@ -4,7 +4,6 @@
 
 [![License](https://img.shields.io/github/license/turtacn/chasi-bod)](https://github.com/turtacn/chasi-bod/blob/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/turtacn/chasi-bod)](https://goreportcard.com/report/github.com/turtacn/chasi-bod)
-[![CI Status](https://github.com/turtacn/chasi-bod/workflows/CI/badge.svg)](https://github.com/turtacn/chasi-bod/actions?query=workflow%3ACI)
 [![Release](https://img.shields.io/github/v/release/turtacn/chasi-bod)](https://github.com/turtacn/chasi-bod/releases/latest)
 
 ## ✨ What is Chasi-Bod?
@@ -94,5 +93,5 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
 
 ## References
 
-[1] sealer - Build, Share and Run Both Your Kubernetes Cluster and Distributed Applications (Project under CNCF) https://github.com/sealerio/sealer
-[2] vCluster - Create fully functional virtual Kubernetes clusters https://github.com/loft-sh/vcluster
+- [1] sealer - Build, Share and Run Both Your Kubernetes Cluster and Distributed Applications (Project under CNCF) https://github.com/sealerio/sealer
+- [2] vCluster - Create fully functional virtual Kubernetes clusters https://github.com/loft-sh/vcluster
