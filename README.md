@@ -8,7 +8,7 @@
 
 ## ✨ What is Chasi-Bod?
 
-`Chasi-Bod` (pronounced similar to "chassis-body") is an open-source project inspired by the concepts of [sealer](https://github.com/sealerio/sealer) [1] and [vcluster](https://github.com/loft-sh/vcluster) [2]. It provides a powerful and simplified platform to **fuse multiple complex business systems** onto a **single, shared underlying Kubernetes cluster**, while ensuring **strong isolation** between them by leveraging virtual Kubernetes clusters (`vcluster`).
+`Chasi-Bod` (pronounced similar to "cha-si-board") is an open-source project inspired by the concepts of [sealer](https://github.com/sealerio/sealer) [1] and [vcluster](https://github.com/loft-sh/vcluster) [2]. It provides a powerful and simplified platform to **fuse multiple complex business systems** onto a **single, shared underlying Kubernetes cluster**, while ensuring **strong isolation** between them by leveraging virtual Kubernetes clusters (`vcluster`).
 
 Think of `chasi-bod` as the "body" built upon the "chassis" (the underlying hardware/VMs) that provides a robust, segmented structure for different "components" (your business systems) to reside in securely and efficiently.
 
