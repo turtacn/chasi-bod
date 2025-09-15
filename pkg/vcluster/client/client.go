@@ -76,11 +76,11 @@ func GetVClusterClient(ctx context.Context, vclusterName string, hostK8sClient k
 
 	// Need to build a rest.Config that trusts the *vcluster's* CA certificate.
 	// The vcluster CA cert is typically stored as a Secret in the host namespace.
-	// Secret name is usually "<vcluster-name>-certs" or similar.
+	// Secret name is usually "vc-certs-{{ .Release.Name }}" or similar.
 	// 需要构建一个信任虚拟集群的 CA 证书的 rest.Config。
 	// 虚拟集群的 CA 证书通常作为 Secret 存储在 host 命名空间中。
-	// Secret 名称通常为 "<vcluster-name>-certs" 或类似名称。
-	certsSecretName := fmt.Sprintf("%s-certs", vclusterName) // TODO: Confirm secret name
+	// Secret 名称通常为 "vc-certs-{{ .Release.Name }}" 或类似名称。
+	certsSecretName := fmt.Sprintf("vc-certs-%s", vclusterName) // TODO: Confirm secret name
 
 	utils.GetLogger().Printf("Fetching vcluster CA certificate from Secret '%s' in host namespace '%s'", certsSecretName, hostNamespace)
 	certsSecret, err := hostK8sClient.CoreV1().Secrets(hostNamespace).Get(ctx, certsSecretName, metav1.GetOptions{})
@@ -93,44 +93,27 @@ func GetVClusterClient(ctx context.Context, vclusterName string, hostK8sClient k
 		return nil, errors.New(errors.ErrTypeVCluster, fmt.Sprintf("vcluster CA certificate not found in secret '%s/%s'", hostNamespace, certsSecretName))
 	}
 
+	// Fetch the token from the secret
+	tokenSecretName := fmt.Sprintf("vc-token-%s", vclusterName)
+	utils.GetLogger().Printf("Fetching vcluster token from Secret '%s' in host namespace '%s'", tokenSecretName, hostNamespace)
+	tokenSecret, err := hostK8sClient.CoreV1().Secrets(hostNamespace).Get(ctx, tokenSecretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, errors.NewWithCause(errors.ErrTypeVCluster, fmt.Sprintf("failed to get vcluster token secret '%s/%s'", hostNamespace, tokenSecretName), err)
+	}
+
+	token, ok := tokenSecret.Data["token"]
+	if !ok || len(token) == 0 {
+		return nil, errors.New(errors.ErrTypeVCluster, fmt.Sprintf("vcluster token not found in secret '%s/%s'", hostNamespace, tokenSecretName))
+	}
+
 	// Now build the rest.Config
 	// 现在构建 rest.Config
 	vclusterConfig := &rest.Config{
-		Host: vclusterAPIServerURL,
+		Host:        vclusterAPIServerURL,
+		BearerToken: string(token),
 		TLSClientConfig: rest.TLSClientConfig{
 			CAData: caCert, // Trust the vcluster's CA // 信任 vcluster 的 CA
-			// If needed, specify client cert/key for authentication to vcluster.
-			// Vcluster often uses a service account token or similar.
-			// You might need to fetch a token from a ServiceAccount Secret within the virtual cluster
-			// (which is challenging from the host cluster).
-			// Perhaps the vcluster deployment gives you a token to use.
-			// 如果需要，指定客户端证书/密钥以对 vcluster 进行身份验证。
-			// vcluster 通常使用服务帐户令牌或类似方式。
-			// 您可能需要从虚拟集群内的 ServiceAccount Secret 中获取令牌
-			// （这从 host 集群来说很有挑战性）。
-			// 也许 vcluster 部署会提供一个可用的 token。
-			// For simplicity, let's assume for now the API server allows unauthenticated access for health checks
-			// or we use a token fetched another way.
-			// In a real scenario, you'd need proper auth.
-			// 为了简单起见，我们现在假设 API 服务器允许未经验证的访问进行健康检查，
-			// 或者我们使用通过其他方式获取的 token。
-			// 在实际场景中，您需要适当的身份验证。
-			// Example of Bearer Token authentication:
-			// // Fetch token from a Secret containing ServiceAccount token within the *virtual* cluster (requires getting client first - chicken and egg problem?)
-			// // Or maybe the vcluster deployment creates a Secret in the *host* namespace containing a token for host-side access?
-			// // 从包含服务帐户令牌的 Secret 中获取令牌，该 Secret 位于虚拟集群内部（需要先获取客户端 - 鸡生蛋蛋生鸡的问题？）
-			// // 或者 vcluster 部署是否在 host 命名空间中创建一个包含用于 host 端访问的令牌的 Secret？
-			// // If the token is available in a host Secret:
-			// // 如果令牌在 host Secret 中可用：
-			// // tokenSecretName := fmt.Sprintf("%s-token", vclusterName) // Hypothetical Secret name
-			// // tokenSecret, err := hostK8sClient.CoreV1().Secrets(hostNamespace).Get(ctx, tokenSecretName, metav1.GetOptions{})
-			// // if err == nil {
-			// //    if tokenData, ok := tokenSecret.Data["token"]; ok { // Confirm key name
-			// //        vclusterConfig.BearerToken = string(tokenData)
-			// //    }
-			// // }
 		},
-		// BearerToken: "your-vcluster-auth-token", // If using token auth directly
 	}
 
 	// Create the vcluster client
@@ -180,7 +163,7 @@ func GetVClusterKubeConfig(ctx context.Context, vclusterName string, hostK8sClie
 
 	// Fetch the CA certificate from the host Secret
 	// 从 host Secret 获取 CA 证书
-	certsSecretName := fmt.Sprintf("%s-certs", vclusterName) // TODO: Confirm secret name
+	certsSecretName := fmt.Sprintf("vc-certs-%s", vclusterName) // TODO: Confirm secret name
 	certsSecret, err := hostK8sClient.CoreV1().Secrets(hostNamespace).Get(ctx, certsSecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.NewWithCause(errors.ErrTypeVCluster, fmt.Sprintf("failed to get vcluster certs secret '%s/%s' for kubeconfig", hostNamespace, certsSecretName), err)
@@ -190,28 +173,16 @@ func GetVClusterKubeConfig(ctx context.Context, vclusterName string, hostK8sClie
 		return nil, errors.New(errors.ErrTypeVCluster, fmt.Sprintf("vcluster CA certificate not found in secret '%s/%s' for kubeconfig", hostNamespace, certsSecretName))
 	}
 
-	// You also need authentication details for the virtual cluster.
-	// Typically, this is a ServiceAccount token created within the virtual cluster.
-	// You'd need to get a client *to the virtual cluster* first, create a ServiceAccount and Secret,
-	// then fetch the token from that Secret. This is a bit of a circular dependency if you need the kubeconfig
-	// to get the client in the first place.
-	// 您还需要虚拟集群的身份验证详细信息。
-	// 通常，这是在虚拟集群中创建的服务帐户令牌。
-	// 您首先需要获取一个到虚拟集群的客户端，创建一个 ServiceAccount 和 Secret，
-	// 然后从该 Secret 中获取令牌。如果您首先需要 kubeconfig 来获取客户端，则存在一些循环依赖。
-	// A common approach is to use the `vcluster connect` CLI command, which handles this complexity
-	// by setting up port-forwarding initially to get the token.
-	// 一种常见的方法是使用 `vcluster connect` CLI 命令，该命令通过最初设置端口转发来获取令牌，从而处理这种复杂性。
-	// For programmatic access, you might need to:
-	// 1. Port-forward to the vcluster server pod temporarily.
-	// 2. Use the temporary client to create/get a ServiceAccount and its token Secret in the vcluster.
-	// 3. Extract the token and CA cert.
-	// 4. Build the kubeconfig.
-	// 对于编程访问，您可能需要：
-	// 1. 临时端口转发到 vcluster 服务器 pod。
-	// 2. 使用临时客户端在 vcluster 中创建/获取 ServiceAccount 及其 token Secret。
-	// 3. 提取令牌和 CA 证书。
-	// 4. 构建 kubeconfig。
+	// Fetch the token from the secret
+	tokenSecretName := fmt.Sprintf("vc-token-%s", vclusterName)
+	tokenSecret, err := hostK8sClient.CoreV1().Secrets(hostNamespace).Get(ctx, tokenSecretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, errors.NewWithCause(errors.ErrTypeVCluster, fmt.Sprintf("failed to get vcluster token secret '%s/%s' for kubeconfig", hostNamespace, tokenSecretName), err)
+	}
+	token, ok := tokenSecret.Data["token"]
+	if !ok || len(token) == 0 {
+		return nil, errors.New(errors.ErrTypeVCluster, fmt.Sprintf("vcluster token not found in secret '%s/%s' for kubeconfig", hostNamespace, tokenSecretName))
+	}
 
 	// Placeholder: Building a basic kubeconfig structure with CA cert and endpoint.
 	// Authentication details are missing in this simplified placeholder.
@@ -236,9 +207,7 @@ preferences: {}
 users:
 - name: %s
   user:
-    # Authentication details here (e.g., token, client-certificate-data, client-key-data)
-    # authentication:
-    #   token: %s # Example: Replace with actual token data
+    token: %s
 `
 	// Example user name (can be anything descriptive)
 	// 示例用户名称（可以是任何描述性的）
@@ -261,17 +230,10 @@ users:
 		contextName,             // context name
 		contextName,             // current-context
 		userName,                // user name in users
-		// Add token or other auth details here if available
-		// 如果可用，在此处添加令牌或其他身份验证详细信息
-		// "YOUR_VCLUSTER_TOKEN", // Placeholder for token
+		string(token),           // token
 	)
 
-	utils.GetLogger().Printf("Generated basic kubeconfig for vcluster '%s'. Authentication method is a placeholder.", vclusterName)
+	utils.GetLogger().Printf("Generated kubeconfig for vcluster '%s'.", vclusterName)
 
-	// Note: This generated kubeconfig is incomplete without proper authentication details.
-	// A production implementation needs a secure way to obtain and include the vcluster token or client certs.
-	// 注意：如果没有适当的身份验证详细信息，此生成的 kubeconfig 是不完整的。
-	// 生产实现需要一种安全的方法来获取和包含 vcluster 令牌或客户端证书。
-
-	return []byte(kubeconfigContent), errors.New(errors.ErrTypeNotImplemented, "generating complete vcluster kubeconfig (with auth) not fully implemented")
+	return []byte(kubeconfigContent), nil
 }

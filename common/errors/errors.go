@@ -47,6 +47,12 @@ const (
 	// ErrTypeApplication indicates an error related to application deployment or management.
 	// ErrTypeApplication 表示与应用程序部署或管理相关的错误。
 	ErrTypeApplication ErrorType = "application"
+	// ErrTypeDFX indicates an error related to DFX (Design for X) components like logging, metrics, tracing.
+	// ErrTypeDFX 表示与 DFX（可观测性设计）组件（如日志、指标、追踪）相关的错误。
+	ErrTypeDFX ErrorType = "dfx"
+	// ErrTypeReliability indicates an error related to reliability components like backup, restore.
+	// ErrTypeReliability 表示与可靠性组件（如备份、恢复）相关的错误。
+	ErrTypeReliability ErrorType = "reliability"
 )
 
 // ChasiBodError is a custom error type for chasi-bod errors.

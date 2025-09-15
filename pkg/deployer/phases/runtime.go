@@ -31,16 +31,16 @@ type RuntimeConfigPhase interface {
 // Returns a RuntimeConfigPhase implementation.
 // 返回 RuntimeConfigPhase 实现。
 func NewRuntimeConfigPhase() RuntimeConfigPhase {
-	return &defaultRuntimeConfigPhase{}
+	return &DefaultRuntimeConfigPhase{}
 }
 
-// defaultRuntimeConfigPhase is a default implementation of the RuntimeConfigPhase.
-// defaultRuntimeConfigPhase 是 RuntimeConfigPhase 的默认实现。
-type defaultRuntimeConfigPhase struct{}
+// DefaultRuntimeConfigPhase is a default implementation of the RuntimeConfigPhase.
+// DefaultRuntimeConfigPhase 是 RuntimeConfigPhase 的默认实现。
+type DefaultRuntimeConfigPhase struct{}
 
 // Run executes the container runtime configuration phase.
 // Run 执行容器运行时配置阶段。
-func (p *defaultRuntimeConfigPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error {
+func (p *DefaultRuntimeConfigPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error {
 	utils.GetLogger().Printf("Running RuntimeConfigPhase for node %s (Runtime: %s)", nodeCfg.Address, clusterCfg.ContainerRuntime)
 
 	// TODO: Get SSH client for the node

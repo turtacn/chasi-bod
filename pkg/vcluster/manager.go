@@ -8,10 +8,15 @@ import (
 	"time"
 
 	"github.com/turtacn/chasi-bod/common/errors"
+	"os"
+
 	"github.com/turtacn/chasi-bod/common/utils" // Assuming logger is here // 假设日志记录器在这里
 	"github.com/turtacn/chasi-bod/pkg/config/model"
 	vcluster_client "github.com/turtacn/chasi-bod/pkg/vcluster/client" // Alias to avoid naming conflict // 别名以避免命名冲突
-
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	corev1 "k8s.io/api/core/v1"                    // Added for Namespace and Secret types // 添加用于 Namespace 和 Secret 类型
 	apierrors "k8s.io/apimachinery/pkg/api/errors" // Added for checking Kubernetes API errors // 添加用于检查 Kubernetes API 错误
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"  // Added for meta types // 添加用于元数据类型
@@ -69,6 +74,7 @@ type Manager interface {
 // defaultManager 是 VCluster Manager 的默认实现。
 type defaultManager struct {
 	hostK8sClient kubernetes.Interface // Client to interact with the Host Cluster / 用于与 Host 集群交互的客户端
+	chartPath     string
 }
 
 // NewManager creates a new VCluster Manager.
@@ -76,9 +82,10 @@ type defaultManager struct {
 // hostK8sClient: A Kubernetes client connected to the Host Cluster. / 连接到 Host 集群的 Kubernetes 客户端。
 // Returns a VCluster Manager implementation.
 // 返回 VCluster Manager 实现。
-func NewManager(hostK8sClient kubernetes.Interface) Manager {
+func NewManager(hostK8sClient kubernetes.Interface, chartPath string) Manager {
 	return &defaultManager{
 		hostK8sClient: hostK8sClient,
+		chartPath:     chartPath,
 	}
 }
 
@@ -100,81 +107,112 @@ func (m *defaultManager) Create(ctx context.Context, config *model.VClusterConfi
 	}
 	utils.GetLogger().Printf("Host namespace '%s' for vcluster '%s' ensured.", config.Namespace, config.Name)
 
-	// Step 2: Deploy the vcluster using Helm or vcluster manifests
-	// 步骤 2：使用 Helm 或 vcluster manifests 部署 vcluster
-	// loft-sh/vcluster is typically deployed via Helm or the vcluster CLI
-	// This implementation should encapsulate that logic, often by applying K8s manifests.
-	// loft-sh/vcluster 通常通过 Helm 或 vcluster CLI 部署
-	// 此实现应封装该逻辑，通常通过应用 K8s manifests 来实现。
-	utils.GetLogger().Printf("Deploying vcluster '%s' via manifests...", config.Name)
+	// Step 2: Deploy the vcluster using Helm
+	// 步骤 2：使用 Helm 部署 vcluster
+	utils.GetLogger().Printf("Deploying vcluster '%s' via Helm from chart path '%s'...", config.Name, m.chartPath)
 
-	// Need to load and process vcluster deployment manifests.
-	// Requires finding the correct manifest based on config.KubernetesVersion etc.
-	// 需要加载和处理 vcluster 部署 manifests。
-	// 需要根据 config.KubernetesVersion 等找到正确的 manifest。
-	// The manifests are usually K8s YAML files defining Deployment, Service, Secret etc.
-	// manifest 通常是定义 Deployment, Service, Secret 等的 K8s YAML 文件。
-	// They might be embedded in the chasi-bod binary or located in a known path.
-	// 它们可能嵌入在 chasi-bod 二进制文件中或位于已知路径。
-
-	// Example: Assuming manifests are loaded from a template or embedded resource
-	// 示例：假设 manifests 从模板或嵌入资源加载
-	// vclusterManifests, err := vcluster_template.LoadAndProcessVClusterManifests(config) // Needs implementation
-	// if err != nil { return fmt.Errorf("failed to load vcluster manifests: %w", err) }
-
-	// TODO: Implement logic to apply vcluster manifests to the Host Cluster in the specified namespace
-	// TODO: 实现将 vcluster manifests 应用到 Host 集群指定命名空间的逻辑
-	// This involves parsing the manifest YAML and using the hostK8sClient to create/update resources.
-	// 这涉及解析 manifest YAML 并使用 hostK8sClient 创建/更新资源。
-	// Can use client-go's dynamic client or a library like "k8s.io/kubectl/pkg/cmd/apply" (complex).
-	// 可以使用 client-go 的 dynamic client 或像 "k8s.io/kubectl/pkg/cmd/apply" 这样的库（复杂）。
-	// A simpler approach is to parse manually and call appropriate Create/Update methods on typed clients (corev1, appsv1).
-	// 更简单的方法是手动解析并调用类型化客户端（corev1, appsv1）上的相应 Create/Update 方法。
-
-	utils.GetLogger().Printf("Placeholder: Applying vcluster '%s' K8s manifests.", config.Name)
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(5 * time.Second): // Simulate manifest application time
-		utils.GetLogger().Printf("Placeholder: Vcluster '%s' K8s manifests applied.", config.Name)
+	chart, err := loader.Load(m.chartPath)
+	if err != nil {
+		return errors.NewWithCause(errors.ErrTypeVCluster, fmt.Sprintf("failed to load helm chart from path %s", m.chartPath), err)
 	}
 
-	// Step 3: Wait for the vcluster's API server pod/deployment to be ready in the host namespace
-	// 步骤 3：等待 vcluster 的 API 服务器 Pod/deployment 在 host 命名空间中运行并就绪
-	utils.GetLogger().Printf("Waiting for vcluster '%s' deployment to be ready in host namespace '%s'...", config.Name, config.Namespace)
-	// You can wait for the main vcluster deployment (or statefulset) to have ready replicas.
-	// The deployment name is usually the vcluster name.
-	// 您可以等待主要的 vcluster deployment（或 statefulset）具有就绪副本。
-	// deployment 名称通常与 vcluster 名称相同。
-	vclusterDeploymentName := config.Name // Assuming deployment name matches vcluster name
+	// Configure Helm action
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(cli.New().RESTClientGetter(), config.Namespace, os.Getenv("HELM_DRIVER"), utils.GetLogger().Printf); err != nil {
+		return errors.NewWithCause(errors.ErrTypeVCluster, "failed to initialize helm action config", err)
+	}
 
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, func(ctx context.Context) (bool, error) {
-		deployment, getErr := m.hostK8sClient.AppsV1().Deployments(config.Namespace).Get(ctx, vclusterDeploymentName, metav1.GetOptions{})
+	// Check if the release already exists
+	histClient := action.NewHistory(actionConfig)
+	histClient.Max = 1
+	if _, err := histClient.Run(config.Name); err == driver.ErrReleaseNotFound {
+		// Release does not exist, install it
+		installClient := action.NewInstall(actionConfig)
+		installClient.ReleaseName = config.Name
+		installClient.Namespace = config.Namespace
+		installClient.CreateNamespace = true
+
+		// Set values for the chart
+		values, err := m.getVClusterHelmValues(config)
+		if err != nil {
+			return err
+		}
+
+		rel, err := installClient.Run(chart, values)
+		if err != nil {
+			return errors.NewWithCause(errors.ErrTypeVCluster, fmt.Sprintf("failed to install vcluster helm chart for %s", config.Name), err)
+		}
+		utils.GetLogger().Printf("Successfully installed vcluster '%s' with release version %d", rel.Name, rel.Version)
+	} else if err == nil {
+		// Release exists, upgrade it
+		utils.GetLogger().Printf("Release '%s' already exists, performing upgrade...", config.Name)
+		upgradeClient := action.NewUpgrade(actionConfig)
+		upgradeClient.Namespace = config.Namespace
+
+		// Set values for the chart
+		values, err := m.getVClusterHelmValues(config)
+		if err != nil {
+			return err
+		}
+
+		rel, err := upgradeClient.Run(config.Name, chart, values)
+		if err != nil {
+			return errors.NewWithCause(errors.ErrTypeVCluster, fmt.Sprintf("failed to upgrade vcluster helm chart for %s", config.Name), err)
+		}
+		utils.GetLogger().Printf("Successfully upgraded vcluster '%s' with release version %d", rel.Name, rel.Version)
+	} else {
+		return errors.NewWithCause(errors.ErrTypeVCluster, fmt.Sprintf("failed to check release history for %s", config.Name), err)
+	}
+
+	// Step 3: Wait for the vcluster's statefulset to be ready
+	// 步骤 3：等待 vcluster 的 statefulset 就绪
+	utils.GetLogger().Printf("Waiting for vcluster '%s' statefulset to be ready in host namespace '%s'...", config.Name, config.Namespace)
+	vclusterStatefulSetName := config.Name
+
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, false, func(ctx context.Context) (bool, error) {
+		statefulset, getErr := m.hostK8sClient.AppsV1().StatefulSets(config.Namespace).Get(ctx, vclusterStatefulSetName, metav1.GetOptions{})
 		if getErr != nil {
 			if apierrors.IsNotFound(getErr) {
-				utils.GetLogger().Printf("Debug: Vcluster deployment '%s' not found yet in namespace %s, retrying...", vclusterDeploymentName, config.Namespace)
-				return false, nil // Deployment not created yet
+				utils.GetLogger().Printf("Debug: Vcluster statefulset '%s' not found yet in namespace %s, retrying...", vclusterStatefulSetName, config.Namespace)
+				return false, nil // StatefulSet not created yet
 			}
-			utils.GetLogger().Printf("Error getting vcluster deployment '%s' in namespace %s: %v", vclusterDeploymentName, config.Namespace, getErr)
+			utils.GetLogger().Printf("Error getting vcluster statefulset '%s' in namespace %s: %v", vclusterStatefulSetName, config.Namespace, getErr)
 			return false, getErr // Return error to stop polling
 		}
 
-		if deployment.Status.ReadyReplicas > 0 && deployment.Status.ReadyReplicas >= deployment.Status.Replicas {
-			utils.GetLogger().Printf("VCluster deployment '%s' is ready (%d/%d replicas).", vclusterDeploymentName, deployment.Status.ReadyReplicas, deployment.Status.Replicas)
-			return true, nil // Deployment is ready
+		if statefulset.Status.ReadyReplicas > 0 && statefulset.Status.ReadyReplicas >= *statefulset.Spec.Replicas {
+			utils.GetLogger().Printf("VCluster statefulset '%s' is ready (%d/%d replicas).", vclusterStatefulSetName, statefulset.Status.ReadyReplicas, *statefulset.Spec.Replicas)
+			return true, nil // StatefulSet is ready
 		}
 
-		utils.GetLogger().Printf("VCluster deployment '%s' not ready yet (%d/%d replicas) in namespace %s, retrying...",
-			vclusterDeploymentName, deployment.Status.ReadyReplicas, deployment.Status.Replicas, config.Namespace)
-		return false, nil // Deployment exists but not ready
+		utils.GetLogger().Printf("VCluster statefulset '%s' not ready yet (%d/%d replicas) in namespace %s, retrying...",
+			vclusterStatefulSetName, statefulset.Status.ReadyReplicas, *statefulset.Spec.Replicas, config.Namespace)
+		return false, nil // StatefulSet exists but not ready
 	})
 
 	if err != nil {
-		return errors.NewWithCause(errors.ErrTypeVCluster, fmt.Sprintf("vcluster deployment '%s' timed out or failed to become ready in host namespace '%s'", vclusterDeploymentName, config.Namespace), err)
+		return errors.NewWithCause(errors.ErrTypeVCluster, fmt.Sprintf("vcluster statefulset '%s' timed out or failed to become ready in host namespace '%s'", vclusterStatefulSetName, config.Namespace), err)
 	}
 
 	utils.GetLogger().Printf("VCluster '%s' created and ready in host namespace '%s'.", config.Name, config.Namespace)
 	return nil
+}
+
+func (m *defaultManager) getVClusterHelmValues(config *model.VClusterConfig) (map[string]interface{}, error) {
+	// Here you can customize the values for the vcluster helm chart
+	// based on the provided VClusterConfig.
+	// For now, we will use a basic configuration.
+	values := map[string]interface{}{
+		"syncer": map[string]interface{}{
+			"extraArgs": []string{
+				"--tls-san=" + config.Name + "." + config.Namespace + ".svc",
+			},
+		},
+		"vcluster": map[string]interface{}{
+			"image": "rancher/k3s:" + config.KubernetesVersion,
+		},
+	}
+	return values, nil
 }
 
 // Delete deletes a vcluster instance.
@@ -202,7 +240,7 @@ func (m *defaultManager) Delete(ctx context.Context, name string) error {
 	// Step 2: Wait for the namespace to be fully deleted
 	// 步骤 2：等待命名空间完全删除
 	utils.GetLogger().Printf("Waiting for host namespace '%s' to be deleted...", namespace)
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, func(ctx context.Context) (bool, error) {
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, false, func(ctx context.Context) (bool, error) {
 		_, getErr := m.hostK8sClient.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 		if getErr != nil && apierrors.IsNotFound(getErr) {
 			return true, nil // Namespace is gone
@@ -232,7 +270,7 @@ func (m *defaultManager) WaitForReady(ctx context.Context, name string) error {
 	// The `vcluster_client.GetVClusterClient` function handles the connection logic (e.g., port-forwarding or service lookup).
 	// 这需要获取虚拟集群的客户端，并检查其 API 服务器的 healthz 端点。
 	// `vcluster_client.GetVClusterClient` 函数处理连接逻辑（例如，端口转发或服务查找）。
-	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, false, func(ctx context.Context) (bool, error) {
 		vClient, getClientErr := vcluster_client.GetVClusterClient(ctx, name, m.hostK8sClient) // Use the helper function
 		if getClientErr != nil {
 			// If we can't even get a client, the vcluster is likely not ready or accessible yet

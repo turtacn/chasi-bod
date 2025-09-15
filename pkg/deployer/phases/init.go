@@ -6,7 +6,7 @@ package phases
 
 import (
 	"context"
-	//"time"
+	"time"
 
 	"github.com/turtacn/chasi-bod/common/utils" // Assuming logger is here // 假设日志记录器在这里
 	"github.com/turtacn/chasi-bod/pkg/config/model"
@@ -35,16 +35,16 @@ type InitPhase interface {
 // Returns an InitPhase implementation.
 // 返回 InitPhase 实现。
 func NewInitPhase() InitPhase {
-	return &defaultInitPhase{}
+	return &DefaultInitPhase{}
 }
 
-// defaultInitPhase is a default implementation of the InitPhase.
-// defaultInitPhase 是 InitPhase 的默认实现。
-type defaultInitPhase struct{}
+// DefaultInitPhase is a default implementation of the InitPhase.
+// DefaultInitPhase 是 InitPhase 的默认实现。
+type DefaultInitPhase struct{}
 
 // Run executes the initialization phase.
 // Run 执行初始化阶段。
-func (p *defaultInitPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error {
+func (p *DefaultInitPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error {
 	utils.GetLogger().Printf("Running InitPhase for node %s", nodeCfg.Address)
 
 	// Step 1: Check SSH connectivity
@@ -91,3 +91,11 @@ func (p *defaultInitPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, c
 
 // TODO: Add helper functions like checkKernelVersion, checkDiskSpace, etc.
 // TODO: 添加辅助函数，例如 checkKernelVersion, checkDiskSpace 等。
+
+// NodeSpecificPhase is a marker interface for phases that run on individual nodes.
+// This is just for conceptual grouping in the deployer's run loop example.
+// NodeSpecificPhase 是用于在单个节点上运行的阶段的标记接口。
+// 这只是在 deployer 的运行循环示例中进行概念分组。
+type NodeSpecificPhase interface {
+	Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error
+}

@@ -6,7 +6,6 @@ import (
 	"context"
 	"time"
 
-	//"fmt"
 	"strings"
 
 	"github.com/turtacn/chasi-bod/common/errors"
@@ -131,7 +130,7 @@ func (p *defaultK8sInstallPhase) Run(ctx context.Context, nodes []model.NodeConf
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(len(workerNodes) * 2 * time.Minute): // Simulate join time per node
+		case <-time.After(time.Duration(len(workerNodes)) * 2 * time.Minute): // Simulate join time per node
 			utils.GetLogger().Println("Placeholder: Kubeadm join completed on worker nodes.")
 		}
 	} else {
@@ -202,16 +201,6 @@ func (p *defaultK8sInstallPhase) Run(ctx context.Context, nodes []model.NodeConf
 	return nil
 }
 
-// formatNodeAddresses is a helper to format a list of node addresses for logging.
-// formatNodeAddresses 是一个辅助函数，用于格式化节点地址列表以便记录日志。
-func formatNodeAddresses(nodes []model.NodeConfig) string {
-	addresses := make([]string, len(nodes))
-	for i, node := range nodes {
-		addresses[i] = node.Address
-	}
-	return strings.Join(addresses, ", ")
-}
-
 // TODO: Implement helper functions for remote command execution, file transfer, etc. using sshutil
 // TODO: 使用 sshutil 实现远程命令执行、文件传输等辅助函数
 // TODO: Implement helper function to generate kubeadm config YAML
@@ -225,3 +214,11 @@ func formatNodeAddresses(nodes []model.NodeConfig) string {
 // TODO: 实现使用 K8s 客户端从集群移除节点的辅助函数
 // TODO: Implement helper function to wait for a node to be Ready using K8s client
 // TODO: 实现使用 K8s 客户端等待节点就绪的辅助函数
+
+func formatNodeAddresses(nodes []model.NodeConfig) string {
+	addresses := make([]string, len(nodes))
+	for i, node := range nodes {
+		addresses[i] = node.Address
+	}
+	return strings.Join(addresses, ", ")
+}

@@ -63,16 +63,74 @@ For a detailed breakdown, please refer to the [architecture documentation / 架�
 
 ## 🌱 Getting Started
 
-(Coming Soon)
+This guide will walk you through the basic steps to get `chasi-bod` up and running.
 
-Instructions on how to:
+### Prerequisites
 
-* Build the `chasi-bod` CLI.
-* Define a sample platform configuration.
-* Build a sample platform image.
-* Deploy the image to a virtual machine.
-* Create a sample `vcluster`.
-* Deploy a demo application into the `vcluster`.
+*   Go 1.18+
+*   Docker
+*   A running Kubernetes cluster (e.g., kind, Minikube, or any other standard cluster) to act as the "host" cluster.
+
+### 1. Build the `chasi-bod` CLI
+
+Clone the repository and build the `chasi-bod` binary:
+
+```bash
+git clone https://github.com/turtacn/chasi-bod.git
+cd chasi-bod
+go build -o chasi-bod cmd/chasi-bod/main.go
+```
+
+### 2. Create a Configuration File
+
+Create a file named `chasi-bod.yaml` with the following content. This file defines a `vcluster` named `my-vcluster`.
+
+```yaml
+apiVersion: chasi-bod.io/v1alpha1
+kind: PlatformConfig
+metadata:
+  name: chasi-bod-platform
+vclusters:
+  my-vcluster:
+    name: my-vcluster
+    namespace: vcluster-my-vcluster
+    kubernetesVersion: v1.27.3
+```
+
+### 3. Create a vCluster
+
+Now, use the `chasi-bod` CLI to create the `vcluster` in your host Kubernetes cluster. Make sure your `kubeconfig` is pointing to your host cluster.
+
+```bash
+./chasi-bod --config chasi-bod.yaml vcluster create my-vcluster --wait
+```
+
+This command will:
+1.  Create a namespace `vcluster-my-vcluster` in your host cluster.
+2.  Deploy the `vcluster` components into that namespace.
+3.  Wait for the `vcluster` to be ready.
+
+### 4. Interact with the vCluster
+
+Once the `vcluster` is created, you can get a `kubeconfig` to interact with it:
+
+```bash
+./chasi-bod vcluster connect my-vcluster > vcluster-kubeconfig.yaml
+```
+
+You can now use this `kubeconfig` with `kubectl` to interact with your `vcluster`:
+
+```bash
+kubectl --kubeconfig=vcluster-kubeconfig.yaml get namespaces
+```
+
+### 5. Delete the vCluster
+
+To clean up, you can delete the `vcluster`:
+
+```bash
+./chasi-bod vcluster delete my-vcluster --wait
+```
 
 ## 🤝 Contributing
 

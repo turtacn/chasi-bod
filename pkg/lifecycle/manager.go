@@ -9,9 +9,12 @@ import (
 	"fmt"
 	"time" // Added for timeouts etc. // 添加用于超时等
 
+	"strings"
+
 	"github.com/turtacn/chasi-bod/common/errors"
+	"github.com/turtacn/chasi-bod/common/types/enum"
 	"github.com/turtacn/chasi-bod/common/utils" // Assuming logger is here // 假设日志记录器在这里
-	//"github.com/turtacn/chasi-bod/pkg/builder" // Assuming a builder orchestrator interface exists // 假设构建器协调器接口存在
+	// "github.com/turtacn/chasi-bod/pkg/builder"  // Assuming a builder orchestrator interface exists // 假设构建器协调器接口存在
 	"github.com/turtacn/chasi-bod/pkg/config/model"
 	"github.com/turtacn/chasi-bod/pkg/deployer" // Assuming deployer orchestrator interface exists // 假设部署器协调器接口存在
 	"github.com/turtacn/chasi-bod/pkg/storage"  // Import storage package for backup/restore utilities // 导入 storage 包用于备份/恢复工具
@@ -80,8 +83,8 @@ type Manager interface {
 // defaultManager 是 Lifecycle Manager 的默认实现。
 type defaultManager struct {
 	platformDeployer deployer.Deployer // The platform deployer orchestrator / 平台 deployer 协调器
-	imageBuilder     builder.Builder   // The platform image builder orchestrator / 平台镜像构建器协调器
-	vclusterManager  vcluster.Manager  // The vcluster manager / vcluster 管理器
+	// imageBuilder     builder.Builder   // The platform image builder orchestrator / 平台镜像构建器协调器
+	vclusterManager vcluster.Manager // The vcluster manager / vcluster 管理器
 	// appDeployer application.Deployer // The application deployer / 应用程序 deployer
 	// Add other dependencies like backup/restore tools
 	// 添加其他依赖项，例如备份/恢复工具
@@ -95,11 +98,11 @@ type defaultManager struct {
 // appDeployer: The application deployer (optional). / 应用程序 deployer（可选）。
 // Returns a Lifecycle Manager implementation.
 // 返回 Lifecycle Manager 实现。
-func NewManager(platformDeployer deployer.Deployer, imageBuilder builder.Builder, vclusterManager vcluster.Manager /*, appDeployer application.Deployer*/) Manager {
+func NewManager(platformDeployer deployer.Deployer, vclusterManager vcluster.Manager /*, appDeployer application.Deployer*/) Manager {
 	return &defaultManager{
 		platformDeployer: platformDeployer,
-		imageBuilder:     imageBuilder,
-		vclusterManager:  vclusterManager,
+		// imageBuilder:     imageBuilder,
+		vclusterManager: vclusterManager,
 		// appDeployer: appDeployer,
 	}
 }
@@ -118,7 +121,7 @@ func (m *defaultManager) UpgradePlatform(ctx context.Context, currentConfig *mod
 	// if err != nil { return errors.NewWithCause(errors.ErrTypeBuilder, "failed to build new platform image", err) }
 	// utils.GetLogger().Printf("New platform image built at: %s", newImagePath)
 	utils.GetLogger().Println("Placeholder: New platform image built.")
-	newImagePathPlaceholder := "placeholder/new-image.iso" // Simulate path // 模拟路径
+	// newImagePathPlaceholder := "placeholder/new-image.iso" // Simulate path // 模拟路径
 
 	// Step 2: Implement upgrade strategy (e.g., rolling update, replace nodes)
 	// This is complex and depends on desired downtime, infrastructure type etc.
@@ -141,7 +144,7 @@ func (m *defaultManager) UpgradePlatform(ctx context.Context, currentConfig *mod
 	// TODO: 使用 currentConfig 获取 Host K8s 客户端（滚动升级期间需要排空/取消封锁节点）
 	// hostK8sClient, err := getHostK8sClient(currentConfig) // Need to implement this function
 	// if err != nil { return errors.NewWithCause(errors.ErrTypeSystem, "failed to get host K8s client for upgrade", err) }
-	var hostK8sClient interface{} // Placeholder - should be kubernetes.Interface
+	// var hostK8sClient interface{} // Placeholder - should be kubernetes.Interface
 
 	// Need logic to iterate through nodes, drain, reimage/reconfigure, uncordon/join
 	// 需要逻辑来遍历节点，排空，重新镜像/重新配置，取消封锁/加入
@@ -284,8 +287,8 @@ func (m *defaultManager) BackupPlatform(ctx context.Context, config *model.Platf
 		utils.GetLogger().Printf("Backing up chasi-bod configuration files from '%s'...", "local-config-paths") // Specify config paths // 指定配置路径
 		// Identify configuration files to backup (e.g., the main config file path)
 		// 识别要备份的配置文件（例如，主配置文件路径）
-		configFilesToBackup := []string{ /* constants.DefaultConfigPath, */ "other/config/files" /* ... */} // TODO: Get actual config file paths // 获取实际配置文件路径
-		localBackupTempDir := "/tmp/chasi-bod-config-backup"                                                // Temporary local dir // 临时本地目录
+		// configFilesToBackup := []string{ /* constants.DefaultConfigPath, */ "other/config/files" /* ... */} // TODO: Get actual config file paths // 获取实际配置文件路径
+		localBackupTempDir := "/tmp/chasi-bod-config-backup" // Temporary local dir // 临时本地目录
 
 		// This step might backup local config files or files from master nodes.
 		// If configs are on master nodes, use storage.BackupConfigFiles.
@@ -338,7 +341,7 @@ func (m *defaultManager) RestorePlatform(ctx context.Context, config *model.Plat
 		utils.GetLogger().Printf("Restoring chasi-bod configuration files from '%s'...", backupLocation)
 		// TODO: Implement transfer logic to get config files from backupLocation to a temporary local dir
 		// TODO: 实现传输逻辑以从 backupLocation 获取配置文件到临时本地目录
-		localRestoreTempDir := "/tmp/chasi-bod-config-restore" // Temporary local dir // 临时本地目录
+		// localRestoreTempDir := "/tmp/chasi-bod-config-restore" // Temporary local dir // 临时本地目录
 		// TODO: Copy files from localRestoreTempDir to their intended destinations (e.g., constants.DefaultConfigPath)
 		// If config files were from master nodes, use storage.RestoreConfigFiles.
 		// 如果配置文件来自主节点，使用 storage.RestoreConfigFiles。
@@ -431,3 +434,11 @@ func (m *defaultManager) RestorePlatform(ctx context.Context, config *model.Plat
 // func findNodeConfig(config *model.PlatformConfig, address string) *model.NodeConfig { ... }
 // TODO: Implement helper functions for transferring backup files (local, SSH/SFTP, S3, NFS)
 // TODO: 实现传输备份文件的辅助函数（本地、SSH/SFTP、S3、NFS）
+
+func formatNodeAddresses(nodes []model.NodeConfig) string {
+	addresses := make([]string, len(nodes))
+	for i, node := range nodes {
+		addresses[i] = node.Address
+	}
+	return strings.Join(addresses, ", ")
+}

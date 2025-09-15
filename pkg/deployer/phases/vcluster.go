@@ -62,7 +62,7 @@ func (p *defaultVClusterDeployPhase) Run(ctx context.Context, config *model.Plat
 
 	// Initialize vclusterManager with the hostK8sClient
 	// 使用 hostK8sClient 初始化 vclusterManager
-	vclusterManager := vcluster_mgr.NewManager(k8sClient) // Assuming NewManager takes a K8s client
+	vclusterManager := vcluster_mgr.NewManager(k8sClient, "pkg/vcluster/chart/vcluster") // Assuming NewManager takes a K8s client
 	// p.vclusterManager = vclusterManager // If storing in struct
 
 	if len(config.VClusters) == 0 {

@@ -7,14 +7,12 @@ package logging
 import (
 	"context"
 	"fmt"
-	"strings" // Added for string operations // 添加用于字符串操作
 
 	"github.com/turtacn/chasi-bod/common/errors"
 	"github.com/turtacn/chasi-bod/common/utils" // Assuming logger is here // 假设日志记录器在这里
 	"github.com/turtacn/chasi-bod/pkg/config/model"
 	// You'll need Kubernetes API types for deploying DaemonSets, ConfigMaps etc.
 	// 您将需要 Kubernetes API 类型来部署 DaemonSets, ConfigMaps 等。
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors" // Added for checking API errors // 添加用于检查 API 错误
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

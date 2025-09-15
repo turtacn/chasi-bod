@@ -32,16 +32,16 @@ type NetworkConfigPhase interface {
 // Returns a NetworkConfigPhase implementation.
 // 返回 NetworkConfigPhase 实现。
 func NewNetworkConfigPhase() NetworkConfigPhase {
-	return &defaultNetworkConfigPhase{}
+	return &DefaultNetworkConfigPhase{}
 }
 
-// defaultNetworkConfigPhase is a default implementation of the NetworkConfigPhase.
-// defaultNetworkConfigPhase 是 NetworkConfigPhase 的默认实现。
-type defaultNetworkConfigPhase struct{}
+// DefaultNetworkConfigPhase is a default implementation of the NetworkConfigPhase.
+// DefaultNetworkConfigPhase 是 NetworkConfigPhase 的默认实现。
+type DefaultNetworkConfigPhase struct{}
 
 // Run executes the network configuration phase.
 // Run 执行网络配置阶段。
-func (p *defaultNetworkConfigPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error {
+func (p *DefaultNetworkConfigPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error {
 	utils.GetLogger().Printf("Running NetworkConfigPhase for node %s", nodeCfg.Address)
 
 	// TODO: Get SSH client for the node

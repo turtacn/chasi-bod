@@ -31,16 +31,16 @@ type StorageConfigPhase interface {
 // Returns a StorageConfigPhase implementation.
 // 返回 StorageConfigPhase 实现。
 func NewStorageConfigPhase() StorageConfigPhase {
-	return &defaultStorageConfigPhase{}
+	return &DefaultStorageConfigPhase{}
 }
 
-// defaultStorageConfigPhase is a default implementation of the StorageConfigPhase.
-// defaultStorageConfigPhase 是 StorageConfigPhase 的默认实现。
-type defaultStorageConfigPhase struct{}
+// DefaultStorageConfigPhase is a default implementation of the StorageConfigPhase.
+// DefaultStorageConfigPhase 是 StorageConfigPhase 的默认实现。
+type DefaultStorageConfigPhase struct{}
 
 // Run executes the storage configuration phase.
 // Run 执行存储配置阶段。
-func (p *defaultStorageConfigPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error {
+func (p *DefaultStorageConfigPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error {
 	utils.GetLogger().Printf("Running StorageConfigPhase for node %s", nodeCfg.Address)
 
 	// TODO: Get SSH client for the node

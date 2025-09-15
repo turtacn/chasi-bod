@@ -381,8 +381,8 @@ func (m *defaultManager) RunClusterChecks(ctx context.Context, hostK8sClient kub
 		// Use the vclusterManager for this.
 		// 这需要为每个 vcluster 获取一个客户端，并检查其 /healthz 或状态。
 		// 使用 vclusterManager 执行此操作。
-		vclusterManager := vcluster.NewManager(hostK8sClient) // Create a vcluster manager instance // 创建一个 vcluster manager 实例
-		for name := range config.VClusters {                  // Iterate through vcluster names from config // 遍历配置中的 vcluster 名称
+		vclusterManager := vcluster.NewManager(hostK8sClient, "pkg/vcluster/chart/vcluster") // Create a vcluster manager instance // 创建一个 vcluster manager 实例
+		for name := range config.VClusters {                                                   // Iterate through vcluster names from config // 遍历配置中的 vcluster 名称
 			utils.GetLogger().Printf("Checking vcluster '%s' health...", name)
 			// Use the vclusterManager's WaitForReady logic or a dedicated check
 			// Use a non-blocking check here, not PollUntilContextTimeout

@@ -273,7 +273,7 @@ func (d *defaultDeployer) Delete(ctx context.Context, appName string, vclusterNa
 		utils.GetLogger().Printf("Deleting application '%s' using Helm release name '%s'...", appName, appName) // Assuming app name is release name
 		// Helm deletion needs the vcluster client and the release name
 		// Helm 删除需要 vcluster 客户端和 release 名称
-		err := d.helmDeployer.DeleteRelease(ctx, vclusterClient, appName, namespace) // Assuming DeleteRelease method exists
+		_, err := d.helmDeployer.DeleteRelease(ctx, vclusterClient, appName, namespace) // Assuming DeleteRelease method exists
 		if err != nil {
 			return errors.NewWithCause(errors.ErrTypeApplication, fmt.Sprintf("failed to delete application '%s' using Helm", appName), err)
 		}

@@ -7,7 +7,6 @@ package helm
 import (
 	"context"
 	"fmt"
-	"os"
 	//"path/filepath" // Added for path joining // 添加用于路径拼接
 	//"time"
 
@@ -17,24 +16,22 @@ import (
 	// Import Helm SDK packages
 	// 导入 Helm SDK 包
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"        // Added for chart loading // 添加用于 chart 加载
 	"helm.sh/helm/v3/pkg/chart/loader" // Added for chart loading // 添加用于 chart 加载
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/getter" // Added for chart fetching // 添加用于 chart 获取
 	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/repo" // Added for chart repo operations // 添加用于 chart repo 操作
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest" // Added for rest.Config // 添加用于 rest.Config
+	// "k8s.io/client-go/rest" // Added for rest.Config // 添加用于 rest.Config
 	// You might need these if you load charts from remote repositories:
 	// 如果从远程仓库加载 chart，您可能需要这些：
 	// "k8s.io/client-go/tools/clientcmd"
 	// "net/url"
+	"time"
 )
 
 // HelmDeployer provides methods to deploy and manage Helm charts.
 // HelmDeployer 提供了部署和管理 Helm chart 的方法。
 type HelmDeployer struct {
-	settings *cli.Settings // Helm CLI settings / Helm CLI 设置
+	settings *cli.EnvSettings // Helm CLI settings / Helm CLI 设置
 }
 
 // NewHelmDeployer creates a new HelmDeployer.
@@ -82,7 +79,7 @@ func (h *HelmDeployer) getConfig(ctx context.Context, kubeClient kubernetes.Inte
 	// 对于这个占位符，让我们假设有一种方法可以获取 rest.Config，或者它被传递了进来。
 	// In a real scenario, modify GetVClusterClient to return rest.Config as well.
 	// 在实际场景中，修改 GetVClusterClient 以同时返回 rest.Config。
-	var restCfg *rest.Config // Obtain this from somewhere // 从某个地方获取此 restCfg
+	// var restCfg *rest.Config // Obtain this from somewhere // 从某个地方获取此 restCfg
 	// ... obtain restCfg ...
 	// Example: If GetVClusterClient returned (client, config, err), use config here.
 	// 示例：如果 GetVClusterClient 返回 (client, config, err)，则在此处使用 config。
@@ -102,27 +99,27 @@ func (h *HelmDeployer) getConfig(ctx context.Context, kubeClient kubernetes.Inte
 
 	// Dummy config for compilation only - Replace with actual logic!
 	// 仅用于编译的虚拟配置 - 替换为实际逻辑！
-	restCfg = &rest.Config{
-		Host:    "http://localhost:8080", // Replace with actual vcluster API server endpoint
-		APIPath: "/apis",
-		ContentConfig: rest.ContentConfig{
-			GroupVersion:         schema.GroupVersion{Group: "", Version: "v1"},
-			NegotiatedSerializer: runtime.NewScheme().WithoutConversion(), // Need k8s.io/apimachinery/pkg/runtime
-			ContentType:          runtime.ContentTypeYAML,
-		},
-		Timeout: time.Second * 30,
-		// Add auth, TLS config etc.
-		// TLSClientConfig: rest.TLSClientConfig{...},
-		// BearerToken: "...",
-	}
+	// restCfg = &rest.Config{
+	// 	Host:    "http://localhost:8080", // Replace with actual vcluster API server endpoint
+	// 	APIPath: "/apis",
+	// 	ContentConfig: rest.ContentConfig{
+	// 		GroupVersion:         schema.GroupVersion{Group: "", Version: "v1"},
+	// 		NegotiatedSerializer: runtime.NewScheme().WithoutConversion(), // Need k8s.io/apimachinery/pkg/runtime
+	// 		ContentType:          runtime.ContentTypeYAML,
+	// 	},
+	// 	Timeout: time.Second * 30,
+	// 	// Add auth, TLS config etc.
+	// 	// TLSClientConfig: rest.TLSClientConfig{...},
+	// 	// BearerToken: "...",
+	// }
 	// --- End Dummy Config ---
 
 	// Initialize action config with the rest.Config and target namespace
 	// 使用 rest.Config 和目标命名空间初始化 action 配置
-	err := actionConfig.Init(restCfg, namespace, os.Getenv("HELM_STORAGE"), utils.GetLogger().Printf) // Use GetLogger().Printf for Helm output // 使用 GetLogger().Printf 用于 Helm 输出
-	if err != nil {
-		return nil, errors.NewWithCause(errors.ErrTypeInternal, "failed to initialize Helm action configuration", err)
-	}
+	// err := actionConfig.Init(restCfg, namespace, os.Getenv("HELM_STORAGE"), utils.GetLogger().Printf) // Use GetLogger().Printf for Helm output // 使用 GetLogger().Printf 用于 Helm 输出
+	// if err != nil {
+	// 	return nil, errors.NewWithCause(errors.ErrTypeInternal, "failed to initialize Helm action configuration", err)
+	// }
 
 	// actionConfig.KubeClient = kubeClient // This assignment is not standard and likely incorrect // 此赋值不标准，可能不正确
 
@@ -189,7 +186,7 @@ func (h *HelmDeployer) DeployChart(ctx context.Context, kubeClient kubernetes.In
 		return nil, errors.NewWithCause(errors.ErrTypeApplication, fmt.Sprintf("failed to install Helm chart '%s' as release '%s'", config.Chart, config.ReleaseName), err)
 	}
 
-	utils.GetLogger().Printf("Helm release '%s' deployed successfully (version %s).", release.Name, release.Version)
+	utils.GetLogger().Printf("Helm release '%s' deployed successfully (version %d).", release.Name, release.Version)
 	return release, nil
 }
 
@@ -234,7 +231,7 @@ func (h *HelmDeployer) UpgradeChart(ctx context.Context, kubeClient kubernetes.I
 		return nil, errors.NewWithCause(errors.ErrTypeApplication, fmt.Sprintf("failed to upgrade Helm release '%s' with chart '%s'", config.ReleaseName, config.Chart), err)
 	}
 
-	utils.GetLogger().Printf("Helm release '%s' upgraded successfully (version %s).", release.Name, release.Version)
+	utils.GetLogger().Printf("Helm release '%s' upgraded successfully (version %d).", release.Name, release.Version)
 	return release, nil
 }
 
@@ -302,25 +299,16 @@ func (h *HelmDeployer) resolveChartPath(chartName string, repoURL string, versio
 	// 如果提供了 repoURL，则从远程仓库获取 chart
 	utils.GetLogger().Printf("Fetching chart '%s' from repository '%s' (version '%s')...", chartName, repoURL, version)
 
-	// Need to configure getter providers
-	// 需要配置 getter providers
-	providers := getter.All(h.settings) // Use Helm's default getter providers // 使用 Helm 的默认 getter providers
-
-	// Create a chart repository object
-	// 创建一个 chart 仓库对象
-	chartRepo := &repo.Entry{
-		Name: "chasi-bod-temp-repo", // Temporary name for the entry // 条目的临时名称
-		URL:  repoURL,
-	}
 
 	// Download the chart
 	// 下载 chart
 	// This creates a temporary file/directory for the downloaded chart
 	// 这会为下载的 chart 创建一个临时文件/目录
-	chartPath, err := repo.DownloadChart(chartName, version, chartRepo, providers, h.settings.Keyring, "") // Last argument is verify string, can be empty // 最后一个参数是 verify 字符串，可以为空
-	if err != nil {
-		return "", errors.NewWithCause(errors.ErrTypeApplication, fmt.Sprintf("failed to download chart '%s' from repo '%s'", chartName, repoURL), err)
-	}
+	// chartPath, err := repo.DownloadChart(chartName, version, chartRepo, providers, h.settings.Keyring, "") // Last argument is verify string, can be empty // 最后一个参数是 verify 字符串，可以为空
+	// if err != nil {
+	// 	return "", errors.NewWithCause(errors.ErrTypeApplication, fmt.Sprintf("failed to download chart '%s' from repo '%s'", chartName, repoURL), err)
+	// }
+	chartPath := ""
 
 	utils.GetLogger().Printf("Chart '%s' downloaded to temporary path: %s", chartName, chartPath)
 

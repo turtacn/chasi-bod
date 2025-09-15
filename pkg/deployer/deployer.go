@@ -353,18 +353,10 @@ func (d *defaultDeployer) RemoveNode(ctx context.Context, nodeCfg *model.NodeCon
 // 	return nil, errors.New(errors.ErrTypeNotImplemented, "getting host Kubernetes client not implemented")
 // }
 
-// NodeSpecificPhase is a marker interface for phases that run on individual nodes.
-// This is just for conceptual grouping in the deployer's run loop example.
-// NodeSpecificPhase 是用于在单个节点上运行的阶段的标记接口。
-// 这只是在 deployer 的运行循环示例中进行概念分组。
-type NodeSpecificPhase interface {
-	Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error
-}
-
 // Ensure node-specific phases implement the marker interface (for the example loop above)
 // 确保节点特定的阶段实现了标记接口（用于上面的示例循环）
-// var _ NodeSpecificPhase = &defaultInitPhase{}
-// var _ NodeSpecificPhase = &defaultOSConfigPhase{}
-// var _ NodeSpecificPhase = &defaultRuntimeConfigPhase{}
-// var _ NodeSpecificPhase = &defaultNetworkConfigPhase{}
-// var _ NodeSpecificPhase = &defaultStorageConfigPhase{}
+var _ phases.NodeSpecificPhase = &phases.DefaultInitPhase{}
+var _ phases.NodeSpecificPhase = &phases.DefaultOSConfigPhase{}
+var _ phases.NodeSpecificPhase = &phases.DefaultRuntimeConfigPhase{}
+var _ phases.NodeSpecificPhase = &phases.DefaultNetworkConfigPhase{}
+var _ phases.NodeSpecificPhase = &phases.DefaultStorageConfigPhase{}

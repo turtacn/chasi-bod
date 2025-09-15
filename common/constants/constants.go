@@ -3,7 +3,7 @@
 package constants
 
 import (
-//"time"
+	"time"
 )
 
 // DefaultProjectName defines the default name of the project.
@@ -25,6 +25,10 @@ const DefaultLogDir = "/var/log/chasi-bod"
 // DefaultBuildOutputDir defines the default directory for build outputs.
 // DefaultBuildOutputDir 定义了构建输出的默认目录。
 const DefaultBuildOutputDir = "./output"
+
+// DefaultTemplateDir is the default directory for vcluster templates.
+// DefaultTemplateDir 是 vcluster 模板的默认目录。
+const DefaultTemplateDir = "configs/vcluster"
 
 // DefaultTimeout specifies a default timeout duration for operations.
 // DefaultTimeout 指定了操作的默认超时时间。

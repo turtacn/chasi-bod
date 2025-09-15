@@ -5,7 +5,7 @@ package validator
 import (
 	"fmt"
 	"net"
-	//"time"
+	"time"
 
 	"github.com/turtacn/chasi-bod/common/errors"
 	"github.com/turtacn/chasi-bod/common/types"

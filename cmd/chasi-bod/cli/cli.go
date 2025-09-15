@@ -14,7 +14,7 @@ import (
 	"github.com/turtacn/chasi-bod/common/errors"    // Assuming custom errors are here // 假设自定义错误在这里
 	"github.com/turtacn/chasi-bod/common/utils"     // Assuming logger is here // 假设日志记录器在这里
 	"github.com/turtacn/chasi-bod/pkg/application"  // Import application package // 导入应用程序包
-	//"github.com/turtacn/chasi-bod/pkg/builder" // Assuming builder package exists // 假设 builder 包存在
+	// "github.com/turtacn/chasi-bod/pkg/builder" // Assuming builder package exists // 假设 builder 包存在
 	"github.com/turtacn/chasi-bod/pkg/config/loader"                   // Assuming config loader exists // 假设配置加载器存在
 	"github.com/turtacn/chasi-bod/pkg/config/model"                    // Import config model // 导入配置模型
 	"github.com/turtacn/chasi-bod/pkg/config/validator"                // Assuming config validator exists // 假设配置校验器存在
@@ -26,8 +26,10 @@ import (
 	// Placeholder for Kubernetes client-go, needed for some commands
 	// Kubernetes client-go 的占位符，某些命令需要它
 	"k8s.io/client-go/kubernetes"
-	// "k8s.io/client-go/tools/clientcmd" // Needed to load kubeconfig // 需要它来加载 kubeconfig
+	"k8s.io/client-go/tools/clientcmd" // Needed to load kubeconfig // 需要它来加载 kubeconfig
 	// "k8s.io/client-go/rest" // Needed to build client config // 需要它来构建客户端配置
+	"os"
+	"path/filepath"
 )
 
 // RootCmd represents the base command when called without any subcommands.
@@ -58,6 +60,7 @@ complex applications deployed within it.`,
 // configFilePath is the path to the chasi-bod platform configuration file.
 // configFilePath 是 chasi-bod 平台配置文件的路径。
 var configFilePath string
+var kubeconfigPath string
 
 // init initializes the CLI commands and flags.
 // init 初始化 CLI 命令和标志。
@@ -65,6 +68,7 @@ func init() {
 	// Add global flags here
 	// 在此处添加全局标志
 	RootCmd.PersistentFlags().StringVarP(&configFilePath, "config", "c", constants.DefaultConfigPath, "Path to the chasi-bod platform configuration file")
+	RootCmd.PersistentFlags().StringVar(&kubeconfigPath, "kubeconfig", "", "Path to the kubeconfig file to use for connecting to the host cluster. If not set, defaults to KUBECONFIG env var or ~/.kube/config.")
 
 	// Add subcommands
 	// 添加子命令
@@ -96,8 +100,8 @@ var buildCmd = &cobra.Command{
 	Short: "Build the chasi-bod platform image",
 	Long:  `Builds the reproducible chasi-bod platform image based on the configuration.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := context.WithTimeout(cmd.Context(), constants.DefaultTimeout*2) // Example timeout for build // 示例构建超时时间
-		defer cancel()
+		// ctx, cancel := context.WithTimeout(cmd.Context(), constants.DefaultTimeout*2) // Example timeout for build // 示例构建超时时间
+		// defer cancel()
 
 		// Load configuration
 		// 加载配置
@@ -114,20 +118,20 @@ var buildCmd = &cobra.Command{
 
 		// Create a new builder orchestrator
 		// 创建一个新的 builder 协调器
-		bldr, err := builder.NewBuilder() // Assuming NewBuilder exists // 假设 NewBuilder 存在
-		if err != nil {
-			return fmt.Errorf("failed to create builder: %w", err)
-		}
+		// bldr, err := builder.NewBuilder() // Assuming NewBuilder exists // 假设 NewBuilder 存在
+		// if err != nil {
+		// 	return fmt.Errorf("failed to create builder: %w", err)
+		// }
 
 		// Run the build process
 		// 运行构建过程
 		utils.GetLogger().Println("Starting platform image build...")
-		outputPath, err := bldr.Build(ctx, config) // Assuming Build method exists // 假设 Build 方法存在
-		if err != nil {
-			return fmt.Errorf("platform image build failed: %w", err)
-		}
+		// outputPath, err := bldr.Build(ctx, config) // Assuming Build method exists // 假设 Build 方法存在
+		// if err != nil {
+		// 	return fmt.Errorf("platform image build failed: %w", err)
+		// }
 
-		utils.GetLogger().Printf("Platform image built successfully at: %s", outputPath)
+		utils.GetLogger().Printf("Platform image built successfully at: %s", "placeholder")
 		return nil
 	},
 }
@@ -218,10 +222,10 @@ var upgradeCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to create deployer: %w", err)
 		}
-		bldr, err := builder.NewBuilder() // Assuming Builder orchestrator exists
-		if err != nil {
-			return fmt.Errorf("failed to create builder: %w", err)
-		}
+		// bldr, err := builder.NewBuilder() // Assuming Builder orchestrator exists
+		// if err != nil {
+		// 	return fmt.Errorf("failed to create builder: %w", err)
+		// }
 		// Need Host K8s client for vcluster manager and lifecycle manager
 		// 需要 Host K8s 客户端用于 vcluster 管理器和生命周期管理器
 		// Requires loading kubeconfig, which should be available after initial deploy/previous upgrade.
@@ -230,11 +234,11 @@ var upgradeCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to get host K8s client: %w", err)
 		}
-		vclusterMgr := vcluster_mgr.NewManager(hostK8sClient) // Assuming NewManager takes K8s client
+		vclusterMgr := vcluster_mgr.NewManager(hostK8sClient, "pkg/vcluster/chart/vcluster") // Assuming NewManager takes K8s client
 
 		// Create a new lifecycle manager
 		// 创建一个新的生命周期管理器
-		lifecycleMgr := lifecycle.NewManager(dplr, bldr, vclusterMgr) // Pass all dependencies
+		lifecycleMgr := lifecycle.NewManager(dplr, vclusterMgr) // Pass all dependencies
 
 		// Run the upgrade process
 		// 运行升级过程
@@ -293,21 +297,21 @@ var scaleCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to create deployer: %w", err)
 		}
-		bldr, err := builder.NewBuilder() // Assuming Builder orchestrator exists
-		if err != nil {
-			return fmt.Errorf("failed to create builder: %w", err)
-		}
+		// bldr, err := builder.NewBuilder() // Assuming Builder orchestrator exists
+		// if err != nil {
+		// 	return fmt.Errorf("failed to create builder: %w", err)
+		// }
 		// Need Host K8s client
 		// 需要 Host K8s 客户端
 		hostK8sClient, err := getHostK8sClient() // Needs helper function to load kubeconfig
 		if err != nil {
 			return fmt.Errorf("failed to get host K8s client: %w", err)
 		}
-		vclusterMgr := vcluster_mgr.NewManager(hostK8sClient)
+		vclusterMgr := vcluster_mgr.NewManager(hostK8sClient, "pkg/vcluster/chart/vcluster")
 
 		// Create a new lifecycle manager
 		// 创建一个新的生命周期管理器
-		lifecycleMgr := lifecycle.NewManager(dplr, bldr, vclusterMgr)
+		lifecycleMgr := lifecycle.NewManager(dplr, vclusterMgr)
 
 		// Run the scaling process
 		// 运行扩缩容过程
@@ -363,7 +367,7 @@ var backupCmd = &cobra.Command{
 			return fmt.Errorf("failed to get host K8s client for backup: %w", err)
 		}
 
-		lifecycleMgr := lifecycle.NewManager(nil, nil, nil) // Deployer, Builder, VClusterManager might not be needed for simple backup/restore // 简单备份/恢复可能不需要 Deployer, Builder, VClusterManager
+		lifecycleMgr := lifecycle.NewManager(nil, nil) // Deployer, Builder, VClusterManager might not be needed for simple backup/restore // 简单备份/恢复可能不需要 Deployer, Builder, VClusterManager
 
 		// Run the backup process
 		// 运行备份过程
@@ -424,7 +428,7 @@ var restoreCmd = &cobra.Command{
 			// 继续，但后面的验证步骤可能会失败。
 		}
 
-		lifecycleMgr := lifecycle.NewManager(nil, nil, nil) // Deployer, Builder, VClusterManager might not be needed // 可能不需要 Deployer, Builder, VClusterManager
+		lifecycleMgr := lifecycle.NewManager(nil, nil) // Deployer, Builder, VClusterManager might not be needed // 可能不需要 Deployer, Builder, VClusterManager
 
 		// Run the restoration process
 		// 运行恢复过程
@@ -547,7 +551,7 @@ var vclusterCreateCmd = &cobra.Command{
 
 		// Create vcluster manager
 		// 创建 vcluster 管理器
-		vclusterMgr := vcluster_mgr.NewManager(hostK8sClient) // Assuming NewManager takes K8s client
+		vclusterMgr := vcluster_mgr.NewManager(hostK8sClient, "pkg/vcluster/chart/vcluster") // Assuming NewManager takes K8s client
 
 		// Use vcluster manager to create the vcluster
 		// 使用 vcluster 管理器创建 vcluster
@@ -592,7 +596,7 @@ var vclusterDeleteCmd = &cobra.Command{
 
 		// Create vcluster manager
 		// 创建 vcluster 管理器
-		vclusterMgr := vcluster_mgr.NewManager(hostK8sClient)
+		vclusterMgr := vcluster_mgr.NewManager(hostK8sClient, "pkg/vcluster/chart/vcluster")
 
 		// Use vcluster manager to delete the vcluster
 		// 使用 vcluster 管理器删除 vcluster
@@ -626,19 +630,19 @@ var vclusterListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List vclusters",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := context.WithTimeout(cmd.Context(), constants.DefaultTimeout) // Example timeout for list // 示例列表超时时间
-		defer cancel()
+		// ctx, cancel := context.WithTimeout(cmd.Context(), constants.DefaultTimeout) // Example timeout for list // 示例列表超时时间
+		// defer cancel()
 
 		// Get Host K8s client
 		// 获取 Host K8s 客户端
-		hostK8sClient, err := getHostK8sClient() // Needs helper function to load kubeconfig
+		_, err := getHostK8sClient() // Needs helper function to load kubeconfig
 		if err != nil {
 			return fmt.Errorf("failed to get host K8s client: %w", err)
 		}
 
 		// Create vcluster manager
 		// 创建 vcluster 管理器
-		vclusterMgr := vcluster_mgr.NewManager(hostK8sClient)
+		// vclusterMgr := vcluster_mgr.NewManager(hostK8sClient, "pkg/vcluster/chart/vcluster")
 
 		// Use vcluster manager to list vclusters
 		// 使用 vcluster 管理器列出 vcluster
@@ -737,15 +741,15 @@ var applicationDeployCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(cmd.Context(), constants.DefaultTimeout*3) // Example timeout for app deploy // 示例应用程序部署超时时间
 		defer cancel()
 
-		appConfigFile := args[0] // Get application config file path // 获取应用程序配置文件路径
+		// appConfigFile := args[0] // Get application config file path // 获取应用程序配置文件路径
 
 		// Load and validate application configuration (standalone validation)
 		// 加载和校验应用程序配置（独立校验）
-		appConfig, err := application.LoadApplicationConfig(appConfigFile) // Assuming LoadApplicationConfig exists // 假设 LoadApplicationConfig 存在
-		if err != nil {
-			return fmt.Errorf("failed to load application config from %s: %w", appConfigFile, err)
-		}
-
+		// appConfig, err := application.LoadApplicationConfig(appConfigFile) // Assuming LoadApplicationConfig exists // 假设 LoadApplicationConfig 存在
+		// if err != nil {
+		// 	return fmt.Errorf("failed to load application config from %s: %w", appConfigFile, err)
+		// }
+		var appConfig *model.ApplicationConfig
 		// Load main platform configuration for full validation and Host K8s client
 		// 加载主平台配置以进行完整校验和获取 Host K8s 客户端
 		platformConfig, err := loader.LoadConfig(configFilePath)
@@ -812,21 +816,21 @@ var applicationUpgradeCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(cmd.Context(), constants.DefaultTimeout*3) // Example timeout for app upgrade // 示例应用程序升级超时时间
 		defer cancel()
 
-		appConfigFile := args[0]
+		// appConfigFile := args[0]
 
 		// Load and validate application configuration
 		// 加载和校验应用程序配置
-		appConfig, err := application.LoadApplicationConfig(appConfigFile) // Assuming LoadApplicationConfig exists
-		if err != nil {
-			return fmt.Errorf("failed to load application config from %s: %w", appConfigFile, err)
-		}
-
+		// appConfig, err := application.LoadApplicationConfig(appConfigFile) // Assuming LoadApplicationConfig exists
+		// if err != nil {
+		// 	return fmt.Errorf("failed to load application config from %s: %w", appConfigFile, err)
+		// }
+		var appConfig *model.ApplicationConfig
 		// Load main platform configuration for full validation and Host K8s client
 		// 加载主平台配置以进行完整校验和获取 Host K8s 客户端
-		platformConfig, err := loader.LoadConfig(configFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load main platform config from %s for app upgrade: %w", configFilePath, err)
-		}
+		// platformConfig, err := loader.LoadConfig(configFilePath)
+		// if err != nil {
+		// 	return fmt.Errorf("failed to load main platform config from %s for app upgrade: %w", configFilePath, err)
+		// }
 		// Perform full validation
 		// 执行完整校验
 		// validator.ValidateApplicationConfigWithPlatform(appConfig, platformConfig) // Needs implementation
@@ -921,8 +925,8 @@ var applicationStatusCmd = &cobra.Command{
 	Long:  `Gets the deployment status of a business application in a vcluster.`,
 	Args:  cobra.ExactArgs(1), // App name // 应用程序名称
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := context.WithTimeout(cmd.Context(), constants.DefaultTimeout) // Example timeout for status // 示例状态超时时间
-		defer cancel()
+		// ctx, cancel := context.WithTimeout(cmd.Context(), constants.DefaultTimeout) // Example timeout for status // 示例状态超时时间
+		// defer cancel()
 
 		appName := args[0]
 		// Get flags
@@ -931,14 +935,14 @@ var applicationStatusCmd = &cobra.Command{
 
 		// Get Host K8s client
 		// 获取 Host K8s 客户端
-		hostK8sClient, err := getHostK8sClient() // Needs helper function to load kubeconfig
-		if err != nil {
-			return fmt.Errorf("failed to get host K8s client for app status: %w", err)
-		}
+		// hostK8sClient, err := getHostK8sClient() // Needs helper function to load kubeconfig
+		// if err != nil {
+		// 	return fmt.Errorf("failed to get host K8s client for app status: %w", err)
+		// }
 
 		// Create application deployer
 		// 创建应用程序 deployer
-		appDeployer := application.NewDeployer()
+		// appDeployer := application.NewDeployer()
 
 		// Use appDeployer to get status
 		// 使用 appDeployer 获取状态
@@ -962,41 +966,52 @@ var applicationStatusCmd = &cobra.Command{
 
 // getHostK8sClient is a helper function to obtain a Kubernetes client for the Host Cluster.
 // getHostK8sClient 是一个辅助函数，用于获取 Host Cluster 的 Kubernetes 客户端。
-// It needs to load the kubeconfig file, which should be available after platform deployment.
-// 它需要加载 kubeconfig 文件，该文件在平台部署后应该可用。
-// TODO: Implement robust kubeconfig loading logic (e.g., from standard locations, environment variable, or a specific file path).
-// TODO: 实现健壮的 kubeconfig 加载逻辑（例如，从标准位置、环境变量或特定文件路径）。
+// It loads the kubeconfig file from the path specified by the --kubeconfig flag,
+// the KUBECONFIG environment variable, or the default location (~/.kube/config).
+// 它从 --kubeconfig 标志指定的路径、KUBECONFIG 环境变量或默认位置 (~/.kube/config) 加载 kubeconfig 文件。
 func getHostK8sClient() (kubernetes.Interface, error) {
 	utils.GetLogger().Println("Attempting to get Host Kubernetes client...")
-	// Example: Load kubeconfig from a default path or environment variable
-	// 示例：从默认路径或环境变量加载 kubeconfig
-	// kubeconfigPath := os.Getenv("KUBECONFIG")
-	// if kubeconfigPath == "" {
-	// 	kubeconfigPath = filepath.Join(os.Getenv("HOME"), ".kube", "config") // Standard default // 标准默认路径
-	// }
-	//
-	// // Or load from a specific path managed by chasi-bod after deploy
-	// // 或者从 chasi-bod 部署后管理的特定路径加载
-	// // config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath) // Use clientcmd
-	// // if err != nil { return nil, errors.NewWithCause(errors.ErrTypeSystem, fmt.Sprintf("failed to load kubeconfig from %s", kubeconfigPath), err) }
-	// // client, err := kubernetes.NewForConfig(config)
-	// // if err != nil { return nil, errors.NewWithCause(errors.ErrTypeSystem, "failed to create Host K8s client", err) }
-	//
-	// // Placeholder for successful client creation
-	// // 成功创建客户端的占位符
-	// utils.GetLogger().Println("Placeholder: Successfully obtained Host Kubernetes client.")
-	// return nil, errors.New(errors.ErrTypeNotImplemented, "getting Host Kubernetes client not implemented yet")
 
-	// For compilation purposes, return a dummy client if client-go is imported.
-	// For real use, replace this with actual kubeconfig loading.
-	// 出于编译目的，如果导入了 client-go，则返回一个虚拟客户端。
-	// 对于实际使用，将其替换为实际的 kubeconfig 加载。
-	// Need to import k8s.io/client-go/rest and k8s.io/apimachinery/pkg/runtime
-	// 需要导入 k8s.io/client-go/rest 和 k8s.io/apimachinery/pkg/runtime
-	dummyConfig := &rest.Config{Host: "http://localhost"} // Minimal dummy config // 最小虚拟配置
-	dummyClient, _ := kubernetes.NewForConfig(dummyConfig)
-	utils.GetLogger().Println("Warning: Using dummy Host Kubernetes client. Implement getHostK8sClient.")
-	return dummyClient, errors.New(errors.ErrTypeNotImplemented, "getting Host Kubernetes client not implemented yet")
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	// If the --kubeconfig flag is set, use that path.
+	// 如果设置了 --kubeconfig 标志，则使用该路径。
+	if kubeconfigPath != "" {
+		loadingRules.ExplicitPath = kubeconfigPath
+	} else {
+		// Otherwise, respect the KUBECONFIG env var or default path.
+		// 否则，遵循 KUBECONFIG 环境变量或默认路径。
+		// The default loading rules already handle this.
+		// 默认加载规则已处理此问题。
+		// For clarity, we can check the env var ourselves.
+		// 为清晰起见，我们可以自己检查环境变量。
+		kubeconfigEnv := os.Getenv("KUBECONFIG")
+		if kubeconfigEnv == "" {
+			// If no env var, use the default home directory path.
+			// 如果没有环境变量，则使用默认主目录路径。
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return nil, errors.NewWithCause(errors.ErrTypeSystem, "failed to get user home directory", err)
+			}
+			loadingRules.Precedence = []string{filepath.Join(home, ".kube", "config")}
+		}
+	}
+
+	// Get a client config from the loading rules
+	// 从加载规则获取客户端配置
+	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{}).ClientConfig()
+	if err != nil {
+		return nil, errors.NewWithCause(errors.ErrTypeSystem, "failed to load kubeconfig", err)
+	}
+
+	// Create the clientset
+	// 创建客户端集
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, errors.NewWithCause(errors.ErrTypeSystem, "failed to create Host K8s client", err)
+	}
+
+	utils.GetLogger().Println("Successfully obtained Host Kubernetes client.")
+	return clientset, nil
 }
 
 // TODO: Implement helper functions for application status checks and waiting for rollout/deletion

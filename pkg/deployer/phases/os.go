@@ -31,16 +31,16 @@ type OSConfigPhase interface {
 // Returns an OSConfigPhase implementation.
 // 返回 OSConfigPhase 实现。
 func NewOSConfigPhase() OSConfigPhase {
-	return &defaultOSConfigPhase{}
+	return &DefaultOSConfigPhase{}
 }
 
-// defaultOSConfigPhase is a default implementation of the OSConfigPhase.
-// defaultOSConfigPhase 是 OSConfigPhase 的默认实现。
-type defaultOSConfigPhase struct{}
+// DefaultOSConfigPhase is a default implementation of the OSConfigPhase.
+// DefaultOSConfigPhase 是 OSConfigPhase 的默认实现。
+type DefaultOSConfigPhase struct{}
 
 // Run executes the OS configuration phase.
 // Run 执行操作系统配置阶段。
-func (p *defaultOSConfigPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error {
+func (p *DefaultOSConfigPhase) Run(ctx context.Context, nodeCfg *model.NodeConfig, clusterCfg *model.ClusterConfig) error {
 	utils.GetLogger().Printf("Running OSConfigPhase for node %s", nodeCfg.Address)
 
 	// TODO: Get SSH client for the node
